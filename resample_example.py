@@ -2,28 +2,26 @@ import pandas as pd
 
 
 def run():
-    event_df = pd.read_csv('events.csv', parse_dates=['EventDatetime'])
-    make_time_seres(event_df)
+    df = pd.read_csv('events.csv', parse_dates=['EventDatetime'])
+    df_time = make_time_seres(df)
+    df_time.to_csv("events_time.csv")
+    df_time.cumsum().to_csv("events_time_cumulative.csv")
 
 
 def make_time_seres(df):
     dict_event_type = {k: v for k, v in df.groupby('EventType')}
     df_sum = pd.DataFrame()
-    for id_name, id_df in dict_event_type.items():
-        id_df = id_df.dropna()
-        id_df.set_index('EventDatetime', inplace=True)
-        id_df = id_df.resample('1D').count()
-        id_df = id_df.rename(columns={'EventType': id_name})
-        df_sum = df_sum.append(id_df)
+    for type_name, type_df in dict_event_type.items():
+        type_df.dropna(inplace=True)
+        type_df.set_index('EventDatetime', inplace=True)
+        type_df = type_df.resample('1D').count()
+        type_df = type_df.rename(columns={'EventType': type_name})
+        df_sum = df_sum.append(type_df)
     df_sum = df_sum.sort_index()
     df_sum.reset_index(inplace=True)
     df_sum = dedup_with_rollup(df_sum, ['EventDatetime'])
     df_sum.fillna(0, inplace=True)
-    df_sum = df_sum.set_index('EventDatetime')
-    df_sum = df_sum.sort_index()
-
-    df_sum.to_csv("id_time.csv")
-    df_sum.cumsum().to_csv("id_time_cum.csv")
+    return df_sum.set_index('EventDatetime')
 
 
 def dedup_with_rollup(df, distinct_cols):

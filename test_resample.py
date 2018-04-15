@@ -1,17 +1,52 @@
 from unittest import TestCase
 import pandas as pd
+from datetime import datetime
 
-from resample_example import dedup_with_rollup
+from resample_example import dedup_with_rollup, make_time_seres
 
 
-class TestDedup_with_rollup(TestCase):
+def mk_date(str_date):
+    return datetime.strptime(str_date, '%m/%d/%Y')
+
+
+t1 = 'type1'
+t2 = 'type2'
+
+
+class TestResample(TestCase):
+
+    def test_resample(self):
+        input_df = pd.DataFrame(
+            [
+                [mk_date('04/12/2018'), t1],
+                [mk_date('04/13/2018'), t2],
+                [mk_date('04/16/2018'), t1],
+                [mk_date('04/16/2018'), t2],
+                [mk_date('04/16/2018'), t2],
+                [mk_date('04/16/2018'), t2],
+            ],
+            columns=['EventDatetime', 'EventType']
+        )
+        expected_df = pd.DataFrame(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [1.0, 3.0],
+            ],
+            columns=['type1', 'type2'],
+            index=[mk_date('04/12/2018'), mk_date('04/13/2018'), mk_date('04/14/2018'), mk_date('04/15/2018'), mk_date('04/16/2018')]
+        )
+        actual_df = make_time_seres(input_df)
+        self.assertTrue(expected_df.equals(actual_df))
 
     def test_rollup_df_basic(self):
         input_df = pd.DataFrame(
-            [['a', 'a', 'some data',    None],
-             ['a', 'a', None,           'some data 2'],
-             ['b', 'b', 'other data',   'other data 2'],
-             ['b', 'b', None,           None]
+            [['a', 'a', 'some data', None],
+             ['a', 'a', None, 'some data 2'],
+             ['b', 'b', 'other data', 'other data 2'],
+             ['b', 'b', None, None]
              ],
             columns=['uniq1', 'uniq2', 'Data1', 'Data2']
         )
